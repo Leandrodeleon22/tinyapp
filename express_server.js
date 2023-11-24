@@ -17,6 +17,13 @@ app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
 });
+
+app.get("/urls/:id", (req, res) => {
+  const { id } = req.params;
+  const templateVars = { id, longURL: "http://www.lighthouselabs.ca" };
+  res.render("urls_show", templateVars);
+});
+
 // app.get("/urls.json", (req, res) => {
 //   res.json(urlDatabase);
 // });
