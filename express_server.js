@@ -97,11 +97,16 @@ app.post("/urls/:id", (req, res) => {
 });
 
 //LOGIN
-
 app.post("/login", (req, res) => {
   const { username: usernameValue } = req.body;
 
   res.cookie("username", usernameValue);
+  res.redirect("/urls");
+});
+
+//LOGOUT
+app.post("/logout", (req, res) => {
+  res.clearCookie("username");
   res.redirect("/urls");
 });
 
