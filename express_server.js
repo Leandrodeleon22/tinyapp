@@ -29,7 +29,6 @@ const generateRandomString = (length) => {
 
 //HOMEPAGE
 app.get("/urls", (req, res) => {
-  // console.log(req.cookies.username);
   const { username } = req.cookies;
   const templateVars = {
     username,
@@ -41,18 +40,22 @@ app.get("/urls", (req, res) => {
 
 //CREATE NEW URL PAGE
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
-  // res.redirect("/urls");
+  const { username } = req.cookies;
+  const templateVars = {
+    username,
+  };
+  res.render("urls_new", templateVars);
 });
 
 //EDIT PAGE
 app.get("/urls/:id", (req, res) => {
   const { id } = req.params;
-  const templateVars = { id, longURL: urlDatabase[id] };
+  const { username } = req.cookies;
+  const templateVars = { id, longURL: urlDatabase[id], username };
   res.render("urls_show", templateVars);
 });
 
-//CREATE PAGE
+//GO TO THE LINK PROVIDED
 app.get("/u/:id", (req, res) => {
   const { id } = req.params;
   const longURL = urlDatabase[id];
@@ -93,13 +96,12 @@ app.post("/urls/:id", (req, res) => {
   urlDatabase[id] = editURL;
 
   res.redirect("/urls");
-  // urlDatabase[id] =
 });
 
 //LOGIN
 app.post("/login", (req, res) => {
   const { username: usernameValue } = req.body;
-
+  if (!usernameValue) res.send("username cant be empty");
   res.cookie("username", usernameValue);
   res.redirect("/urls");
 });
