@@ -1,10 +1,12 @@
 const express = require("express");
+const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = 8080;
 
 //MIDLEWARE
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 const urlDatabase = {
   b2xVn2: "http://www.lighthouselabs.ca",
@@ -27,7 +29,13 @@ const generateRandomString = (length) => {
 
 //HOMEPAGE
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  // console.log(req.cookies.username);
+  const { username } = req.cookies;
+  const templateVars = {
+    username,
+    urls: urlDatabase,
+  };
+
   res.render("urls_index", templateVars);
 });
 
@@ -91,8 +99,6 @@ app.post("/urls/:id", (req, res) => {
 //LOGIN
 
 app.post("/login", (req, res) => {
-  console.log(req.body);
-
   const { username: usernameValue } = req.body;
 
   res.cookie("username", usernameValue);
