@@ -45,13 +45,16 @@ const generateRandomString = (length) => {
   return result;
 };
 
-const checkExistingEmail = (email) => {
-  for (const key in users) {
-    console.log(users[key].email, email);
-    if (users[key].email === email) {
-      return true;
-    }
-  }
+const getUserByEmail = (email) => {
+  // for (const key in users) {
+  //   if (users[key].email === email) {
+  //     return null;
+  //   }
+  // }
+  const usersValues = Object.values(users);
+  const user = usersValues.filter((user) => user.email === email);
+  if (user.length === 0) return null;
+  return user[0];
 };
 
 //HOME
@@ -92,10 +95,8 @@ app.post("/register/", (req, res) => {
   if (!email || !password)
     return res.status(400).send("Invalid password and email");
 
-  if (checkExistingEmail(email))
-    return res.status(400).send("Email already exist");
-
   const id = generateRandomString(6);
+  if (getUserByEmail(email)) return res.status(400).send("Email already exist");
 
   const newUser = { [id]: { user_id: id, email, password } };
 
@@ -173,14 +174,26 @@ app.get("/login", (req, res) => {
 //   res.redirect("/urls");
 // });
 
-//login 2
+//login 2 refactor
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password)
+    return res.status(400).send("password and email cant be empty");
+
+  const user = getUserByEmail(email);
+
+  if (!user) return res.status(403).send("Invalid password and email");
+
+  if (user.password !== password)
+    res.status(403).send("Invalid password and email");
+
+  res.cookie("user_id", user.id);
+  res.redirect("/urls");
 });
 
 //LOGOUT
 app.post("/logout", (req, res) => {
-  res.clearCookie("username");
   res.clearCookie("user_id");
   res.redirect("/urls");
 });
