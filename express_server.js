@@ -45,6 +45,15 @@ const generateRandomString = (length) => {
   return result;
 };
 
+const checkExistingEmail = (email) => {
+  for (const key in users) {
+    console.log(users[key].email, email);
+    if (users[key].email === email) {
+      return true;
+    }
+  }
+};
+
 //HOME
 app.get("/urls", (req, res) => {
   const { username, user_id } = req.cookies;
@@ -81,7 +90,10 @@ app.post("/register/", (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password)
-    return res.status(401).send("Invalid password and email");
+    return res.status(400).send("Invalid password and email");
+
+  if (checkExistingEmail(email))
+    return res.status(400).send("Email already exist");
 
   const id = generateRandomString(6);
 
@@ -149,12 +161,21 @@ app.post("/urls/:id", (req, res) => {
   res.redirect("/urls");
 });
 
-//LOGIN
+app.get("/login", (req, res) => {
+  res.render("urls_login");
+});
+
+//LOGIN 1
+// app.post("/login", (req, res) => {
+//   const { username: usernameValue } = req.body;
+//   if (!usernameValue) res.send("username cant be empty");
+//   res.cookie("username", usernameValue);
+//   res.redirect("/urls");
+// });
+
+//login 2
 app.post("/login", (req, res) => {
-  const { username: usernameValue } = req.body;
-  if (!usernameValue) res.send("username cant be empty");
-  res.cookie("username", usernameValue);
-  res.redirect("/urls");
+  const { email, password } = req.body;
 });
 
 //LOGOUT
