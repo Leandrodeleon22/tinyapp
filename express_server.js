@@ -26,31 +26,12 @@ const users = {
   },
 };
 
-//GET RANDOM ID
-// const generateRandomString = (length) => {
-//   let result = "";
-//   const characters =
-//     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-//   const charactersLength = characters.length;
-//   let counter = 0;
-//   while (counter < length) {
-//     result += characters.charAt(Math.floor(Math.random() * charactersLength));
-//     counter += 1;
-//   }
-//   return result;
-// };
-
 const generateRandomString = (length) => {
   let result = Math.random().toString(36).substr(2, length);
   return result;
 };
 
 const getUserByEmail = (email) => {
-  // for (const key in users) {
-  //   if (users[key].email === email) {
-  //     return null;
-  //   }
-  // }
   const usersValues = Object.values(users);
   const user = usersValues.filter((user) => user.email === email);
   if (user.length === 0) return null;
@@ -122,8 +103,6 @@ app.get("/urls/:id", (req, res) => {
     return res.status(404).send("ID CANT BE FOUND");
   }
 
-  // const templateVars = {};
-
   const templateVars = {
     id,
     longURL: urlDatabase[id],
@@ -187,15 +166,7 @@ app.get("/login", (req, res) => {
   res.render("urls_login", templateVars);
 });
 
-//LOGIN 1
-// app.post("/login", (req, res) => {
-//   const { username: usernameValue } = req.body;
-//   if (!usernameValue) res.send("username cant be empty");
-//   res.cookie("username", usernameValue);
-//   res.redirect("/urls");
-// });
-
-//login 2 refactor
+//lOGIN  REFACTOR
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
 
