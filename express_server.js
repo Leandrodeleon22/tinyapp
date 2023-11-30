@@ -59,11 +59,9 @@ const getUserByEmail = (email) => {
 
 //HOME
 app.get("/urls", (req, res) => {
-  const { username, user_id } = req.cookies;
-  console.log(req.cookies);
+  const { user_id } = req.cookies;
 
   const templateVars = {
-    username,
     urls: urlDatabase,
     users,
     user: users[user_id],
@@ -74,18 +72,26 @@ app.get("/urls", (req, res) => {
 
 //CREATE NEW URL PAGE
 app.get("/urls/new", (req, res) => {
-  const { username, users } = req.cookies;
+  const { user_id } = req.cookies;
 
   const templateVars = {
-    username,
+    urls: urlDatabase,
     users,
+    user: users[user_id],
   };
   res.render("urls_new", templateVars);
 });
 
 //REGISTER
 app.get("/register", (req, res) => {
-  res.render("urls_register");
+  const { user_id } = req.cookies;
+
+  const templateVars = {
+    urls: urlDatabase,
+    users,
+    user: users[user_id],
+  };
+  res.render("urls_register", templateVars);
 });
 
 //CREATE USER
@@ -98,7 +104,7 @@ app.post("/register/", (req, res) => {
   const id = generateRandomString(6);
   if (getUserByEmail(email)) return res.status(400).send("Email already exist");
 
-  const newUser = { [id]: { user_id: id, email, password } };
+  const newUser = { [id]: { id, email, password } };
 
   Object.assign(users, newUser);
 
@@ -110,13 +116,21 @@ app.post("/register/", (req, res) => {
 // EDIT PAGE
 app.get("/urls/:id", (req, res) => {
   const { id } = req.params;
-  const { username, users } = req.cookies;
+  const { user_id } = req.cookies;
 
   if (!urlDatabase[id]) {
     return res.status(404).send("ID CANT BE FOUND");
   }
 
-  const templateVars = { id, longURL: urlDatabase[id], username, users };
+  // const templateVars = {};
+
+  const templateVars = {
+    id,
+    longURL: urlDatabase[id],
+    urls: urlDatabase,
+    users,
+    user: users[user_id],
+  };
   res.render("urls_show", templateVars);
 });
 
@@ -163,7 +177,14 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  res.render("urls_login");
+  const { user_id } = req.cookies;
+
+  const templateVars = {
+    urls: urlDatabase,
+    users,
+    user: users[user_id],
+  };
+  res.render("urls_login", templateVars);
 });
 
 //LOGIN 1
@@ -186,7 +207,7 @@ app.post("/login", (req, res) => {
   if (!user) return res.status(403).send("Invalid password and email");
 
   if (user.password !== password)
-    res.status(403).send("Invalid password and email");
+    return res.status(403).send("Invalid password and email");
 
   res.cookie("user_id", user.id);
   res.redirect("/urls");
@@ -195,7 +216,7 @@ app.post("/login", (req, res) => {
 //LOGOUT
 app.post("/logout", (req, res) => {
   res.clearCookie("user_id");
-  res.redirect("/urls");
+  res.redirect("/login");
 });
 
 app.listen(PORT, () => {
