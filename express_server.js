@@ -41,11 +41,12 @@ const getUserByEmail = (email) => {
 //HOME
 app.get("/urls", (req, res) => {
   const { user_id } = req.cookies;
-
+  if (!user_id) return res.redirect("/login");
   const templateVars = {
     urls: urlDatabase,
     users,
     user: users[user_id],
+    user_id,
   };
 
   res.render("urls_index", templateVars);
@@ -54,7 +55,7 @@ app.get("/urls", (req, res) => {
 //CREATE NEW URL PAGE
 app.get("/urls/new", (req, res) => {
   const { user_id } = req.cookies;
-
+  if (!user_id) return res.redirect("/login");
   const templateVars = {
     urls: urlDatabase,
     users,
@@ -66,7 +67,7 @@ app.get("/urls/new", (req, res) => {
 //REGISTER
 app.get("/register", (req, res) => {
   const { user_id } = req.cookies;
-
+  if (user_id) res.redirect("/urls");
   const templateVars = {
     urls: urlDatabase,
     users,
@@ -103,6 +104,8 @@ app.get("/urls/:id", (req, res) => {
     return res.status(404).send("ID CANT BE FOUND");
   }
 
+  if (!user_id) return res.redirect("/login");
+
   const templateVars = {
     id,
     longURL: urlDatabase[id],
@@ -113,21 +116,34 @@ app.get("/urls/:id", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
-//GO TO THE LINK PROVIDED
-app.get("/u/:id", (req, res) => {
-  const { id } = req.params;
-  const longURL = urlDatabase[id];
-
-  res.redirect(longURL);
-});
-
 //EDIT
 app.post("/urls/", (req, res) => {
   const id = generateRandomString(6);
   const { longURL } = req.body;
   Object.assign(urlDatabase, { [id]: longURL });
 
+  console.log(urlDatabase);
   res.redirect(`/urls/${id}`);
+});
+
+//GO TO THE LINK PROVIDED
+app.get("/u/:id", (req, res) => {
+  const { id } = req.params;
+
+  // if (!user_id) return res.send("no user id");
+  const longURL = urlDatabase[id];
+  if (longURL === undefined) {
+    const { user_id } = req.cookies;
+    const templateVars = {
+      id,
+      longURL: urlDatabase[id],
+      urls: urlDatabase,
+      users,
+      user: users[user_id],
+    };
+    return res.render("urls_notAvailable", templateVars);
+  }
+  res.redirect(longURL);
 });
 
 //CREATE
@@ -136,7 +152,7 @@ app.post("/urls/", (req, res) => {
   const { longURL } = req.body;
   Object.assign(urlDatabase, { [id]: longURL });
 
-  res.redirect(`/urls/${id}`);
+  res.redirect(`/u/${id}`);
 });
 
 //DELETE
@@ -157,12 +173,13 @@ app.post("/urls/:id", (req, res) => {
 
 app.get("/login", (req, res) => {
   const { user_id } = req.cookies;
-
+  if (user_id) res.redirect("/urls");
   const templateVars = {
     urls: urlDatabase,
     users,
     user: users[user_id],
   };
+
   res.render("urls_login", templateVars);
 });
 
