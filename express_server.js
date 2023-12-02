@@ -1,5 +1,6 @@
 const express = require("express");
 // const cookieParser = require("cookie-parser");
+const { getUserByEmail, generateRandomString } = require("./helpers");
 const cookieSession = require("cookie-session");
 const bcrypt = require("bcryptjs");
 const app = express();
@@ -12,10 +13,29 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   cookieSession({
     name: "session",
-    keys: ["key1", "key2"],
+    keys: ["key1"],
     maxAge: 24 * 60 * 60 * 1000, //24hours
   })
 );
+
+const urlsForUser = (id) => {
+  const allObjects = {};
+  const shortUrls = Object.keys(urlDatabase).filter(
+    (element) => urlDatabase[element].userID === id
+  );
+
+  shortUrls.forEach((shortUrl) => {
+    Object.assign(allObjects, {
+      [shortUrl]: {
+        longURL: urlDatabase[shortUrl].longURL,
+        userID: urlDatabase[shortUrl].userID,
+      },
+    });
+  });
+  // Object.assign(allObjects, [...shortUrl]{})
+  // console.log(allObjects);
+  return allObjects;
+};
 
 // const urlDatabase = {
 //   b2xVn2: "http://www.lighthouselabs.ca",
@@ -46,39 +66,6 @@ const users = {
   },
 };
 
-const urlsForUser = (id) => {
-  const allObjects = {};
-  const shortUrls = Object.keys(urlDatabase).filter(
-    (element) => urlDatabase[element].userID === id
-  );
-  console.log(shortUrls);
-  shortUrls.forEach((shortUrl) => {
-    Object.assign(allObjects, {
-      [shortUrl]: {
-        longURL: urlDatabase[shortUrl].longURL,
-        userID: urlDatabase[shortUrl].userID,
-      },
-    });
-  });
-  // Object.assign(allObjects, [...shortUrl]{})
-  console.log(allObjects);
-  return allObjects;
-};
-
-// urlsForUser("aJ48lW");
-
-const generateRandomString = (length) => {
-  let result = Math.random().toString(36).substr(2, length);
-  return result;
-};
-
-const getUserByEmail = (email) => {
-  const usersValues = Object.values(users);
-  const user = usersValues.filter((user) => user.email === email);
-  if (user.length === 0) return null;
-  return user[0];
-};
-
 //HOME
 app.get("/urls", (req, res) => {
   const { user_id } = req.session;
@@ -100,7 +87,7 @@ app.get("/urls", (req, res) => {
 //CREATE NEW URL PAGE
 app.get("/urls/new", (req, res) => {
   const { user_id } = req.session;
-  console.log(user_id);
+
   if (!user_id) return res.redirect("/login");
   const templateVars = {
     urls: urlDatabase,
@@ -132,7 +119,8 @@ app.post("/register/", (req, res) => {
     return res.status(400).send("Invalid password and email");
 
   const id = generateRandomString(6);
-  if (getUserByEmail(email)) return res.status(400).send("Email already exist");
+  if (getUserByEmail(email, users))
+    return res.status(400).send("Email already exist");
 
   const hashedPassword = bcrypt.hashSync(password, 10);
   console.log(hashedPassword);
@@ -155,7 +143,7 @@ app.post("/register/", (req, res) => {
 app.get("/urls/:id", (req, res) => {
   const { id } = req.params;
   const { user_id } = req.session;
-  console.log(user_id);
+
   if (!urlDatabase[id]) {
     return res.status(404).send("ID CANT BE FOUND");
   }
@@ -210,7 +198,6 @@ app.post("/urls/", (req, res) => {
   const { longURL } = req.body;
   Object.assign(urlDatabase, { [id]: { longURL, userID: user_id } });
 
-  console.log(urlDatabase);
   res.redirect(`/urls/${id}`);
 });
 
@@ -232,7 +219,7 @@ app.post("/urls/:id", (req, res) => {
 //lOGIN
 app.get("/login", (req, res) => {
   const { user_id } = req.session;
-  console.log(req.session);
+
   if (user_id) res.redirect("/urls");
   const templateVars = {
     urls: urlDatabase,
@@ -250,13 +237,13 @@ app.post("/login", (req, res) => {
   if (!email || !password)
     return res.status(400).send("password and email cant be empty");
 
-  const user = getUserByEmail(email);
+  const user = getUserByEmail(email, users);
 
   if (!user) return res.status(403).send("Invalid password and email");
 
   if (!bcrypt.compareSync(password, user.password))
     return res.status(403).send("Invalid password and email");
-  console.log(users);
+
   // res.cookie("user_id", user.id);
   req.session.user_id = user.id;
   res.redirect("/urls");
