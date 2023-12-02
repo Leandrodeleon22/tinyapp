@@ -1,5 +1,6 @@
 const express = require("express");
 // const cookieParser = require("cookie-parser");
+const methodOverride = require("method-override");
 const { getUserByEmail, generateRandomString } = require("./helpers");
 const cookieSession = require("cookie-session");
 const bcrypt = require("bcryptjs");
@@ -13,10 +14,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   cookieSession({
     name: "session",
-    keys: ["key1"],
+    keys: ["key1", "keys2"],
     maxAge: 24 * 60 * 60 * 1000, //24hours
   })
 );
+app.use(methodOverride("_method"));
 
 const urlsForUser = (id) => {
   const allObjects = {};
@@ -46,6 +48,8 @@ const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
     userID: "aJ48lW",
+    totalVisitor: 0,
+    uniqueVisitor: 0,
   },
   i3BoGr: {
     longURL: "https://www.google.ca",
@@ -69,16 +73,16 @@ const users = {
 //HOME
 app.get("/urls", (req, res) => {
   const { user_id } = req.session;
-  if (!user_id) return res.redirect("/login");
+  if (!user_id || !users) {
+    req.session = null;
+    return res.redirect("/login");
+  }
 
   const myUrlDatabase = urlsForUser(user_id);
   console.log(myUrlDatabase);
   const templateVars = {
     urls: myUrlDatabase,
-    users,
-
     user: users[user_id],
-    user_id,
   };
 
   res.render("urls_index", templateVars);
@@ -91,7 +95,7 @@ app.get("/urls/new", (req, res) => {
   if (!user_id) return res.redirect("/login");
   const templateVars = {
     urls: urlDatabase,
-    users,
+    // users,
     user: users[user_id],
   };
   res.render("urls_new", templateVars);
@@ -100,12 +104,10 @@ app.get("/urls/new", (req, res) => {
 //REGISTER
 app.get("/register", (req, res) => {
   const { user_id } = req.session;
-  console.log(user_id);
-  if (user_id) res.redirect("/urls");
+  // if (!user_id) return res.redirect("/urls");
 
   const templateVars = {
     urls: urlDatabase,
-    users,
     user: users[user_id],
   };
   res.render("urls_register", templateVars);
@@ -150,11 +152,15 @@ app.get("/urls/:id", (req, res) => {
 
   if (!user_id) return res.redirect("/login");
 
+  const url = urlDatabase[id];
+
   const templateVars = {
     id,
-    longURL: urlDatabase[id].longURL,
+    views: url.totalVisitor,
+    uniqueVisitor: url.uniqueVisitor,
+    longURL: url.longURL,
     urls: urlDatabase,
-    users,
+    // users,
     user: users[user_id],
   };
   res.render("urls_show", templateVars);
@@ -175,18 +181,29 @@ app.get("/u/:id", (req, res) => {
   const { id } = req.params;
 
   // if (!user_id) return res.send("no user id");
-  const { longURL } = urlDatabase[id];
-  if (longURL === undefined) {
-    const { user_id } = req.cookies;
+  // let uniqueVistors = 0;
+  // let visitors = [];
+  // if (!visitors.includes(id)) {
+  //   visitors.push(id);
+  // }
+
+  if (!urlDatabase[id]) {
+    const { user_id } = req.session;
     const templateVars = {
-      id,
-      longURL: urlDatabase[id],
-      urls: urlDatabase,
-      users,
       user: users[user_id],
     };
     return res.render("urls_notAvailable", templateVars);
   }
+
+  const previousVisits = req.session[id];
+  console.log("+++++++", previousVisits, urlDatabase[id]);
+  if (!previousVisits) {
+    urlDatabase[id].uniqueVisitor++;
+    req.session[id] = id;
+  }
+  urlDatabase[id].totalVisitor++;
+  req.session.views = (req.session.views || 0) + 1;
+  const { longURL } = urlDatabase[id];
   res.redirect(longURL);
 });
 
@@ -196,22 +213,30 @@ app.post("/urls/", (req, res) => {
   const { user_id } = req.session;
   console.log(user_id);
   const { longURL } = req.body;
-  Object.assign(urlDatabase, { [id]: { longURL, userID: user_id } });
+  const totalVisitor = 0;
+  const uniqueVisitor = 0;
+  Object.assign(urlDatabase, {
+    [id]: { longURL, userID: user_id, totalVisitor, uniqueVisitor },
+  });
 
   res.redirect(`/urls/${id}`);
 });
 
 //DELETE
-app.post("/urls/:id/delete", (req, res) => {
+app.delete("/urls/:id", (req, res) => {
   const { id: idToDelete } = req.params;
   delete urlDatabase[idToDelete];
   res.redirect("/urls");
 });
 
 //UPDATE OR EDIT
-app.post("/urls/:id", (req, res) => {
+app.put("/urls/:id", (req, res) => {
   const { id } = req.params;
   const { editURL } = req.body;
+
+  //Can't be empty
+  if (!editURL) return res.redirect(`/urls/${id}`);
+
   urlDatabase[id].longURL = editURL;
 
   res.redirect("/urls");
@@ -220,10 +245,9 @@ app.post("/urls/:id", (req, res) => {
 app.get("/login", (req, res) => {
   const { user_id } = req.session;
 
-  if (user_id) res.redirect("/urls");
+  // if (!user_id) return res.redirect("/urls");
   const templateVars = {
     urls: urlDatabase,
-    users,
     user: users[user_id],
   };
 
