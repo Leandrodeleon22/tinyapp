@@ -1,5 +1,4 @@
 const express = require("express");
-// const cookieParser = require("cookie-parser");
 const methodOverride = require("method-override");
 const { getUserByEmail, generateRandomString } = require("./helpers");
 const cookieSession = require("cookie-session");
@@ -7,10 +6,10 @@ const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080;
 
-//MIDLEWARE
+//MIDLEWARES
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
-// app.use(cookieParser());
+
 app.use(
   cookieSession({
     name: "session",
@@ -20,6 +19,7 @@ app.use(
 );
 app.use(methodOverride("_method"));
 
+//Get urls for specific user helper function
 const urlsForUser = (id) => {
   const allObjects = {};
   const shortUrls = Object.keys(urlDatabase).filter(
@@ -34,16 +34,11 @@ const urlsForUser = (id) => {
       },
     });
   });
-  // Object.assign(allObjects, [...shortUrl]{})
-  // console.log(allObjects);
+
   return allObjects;
 };
 
-// const urlDatabase = {
-//   b2xVn2: "http://www.lighthouselabs.ca",
-//   "9sm5xK": "http://www.google.com",
-// };
-
+//DATA
 const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
@@ -57,6 +52,7 @@ const urlDatabase = {
   },
 };
 
+// DATA USERS
 const users = {
   userRandomID: {
     id: "userRandomID",
@@ -79,7 +75,7 @@ app.get("/urls", (req, res) => {
   }
 
   const myUrlDatabase = urlsForUser(user_id);
-  console.log(myUrlDatabase);
+
   const templateVars = {
     urls: myUrlDatabase,
     user: users[user_id],
@@ -95,7 +91,6 @@ app.get("/urls/new", (req, res) => {
   if (!user_id) return res.redirect("/login");
   const templateVars = {
     urls: urlDatabase,
-    // users,
     user: users[user_id],
   };
   res.render("urls_new", templateVars);
@@ -104,7 +99,6 @@ app.get("/urls/new", (req, res) => {
 //REGISTER
 app.get("/register", (req, res) => {
   const { user_id } = req.session;
-  // if (!user_id) return res.redirect("/urls");
 
   const templateVars = {
     urls: urlDatabase,
@@ -125,7 +119,6 @@ app.post("/register/", (req, res) => {
     return res.status(400).send("Email already exist");
 
   const hashedPassword = bcrypt.hashSync(password, 10);
-  console.log(hashedPassword);
 
   if (!bcrypt.compareSync(password, hashedPassword)) {
     return res.status(400).send("Invalid password and email");
@@ -135,7 +128,6 @@ app.post("/register/", (req, res) => {
 
   Object.assign(users, newUser);
 
-  // res.cookie("user_id", id);
   req.session.user_id = id;
 
   res.redirect("/urls");
@@ -160,32 +152,14 @@ app.get("/urls/:id", (req, res) => {
     uniqueVisitor: url.uniqueVisitor,
     longURL: url.longURL,
     urls: urlDatabase,
-    // users,
     user: users[user_id],
   };
   res.render("urls_show", templateVars);
 });
 
-//EDIT
-// app.post("/urls/", (req, res) => {
-//   const id = generateRandomString(6);
-//   const { longURL } = req.body;
-//   Object.assign(urlDatabase, { [id]: longURL });
-
-//   console.log(urlDatabase);
-//   res.redirect(`/urls/${id}`);
-// });
-
 //GO TO THE LINK PROVIDED
 app.get("/u/:id", (req, res) => {
   const { id } = req.params;
-
-  // if (!user_id) return res.send("no user id");
-  // let uniqueVistors = 0;
-  // let visitors = [];
-  // if (!visitors.includes(id)) {
-  //   visitors.push(id);
-  // }
 
   if (!urlDatabase[id]) {
     const { user_id } = req.session;
@@ -196,7 +170,7 @@ app.get("/u/:id", (req, res) => {
   }
 
   const previousVisits = req.session[id];
-  console.log("+++++++", previousVisits, urlDatabase[id]);
+
   if (!previousVisits) {
     urlDatabase[id].uniqueVisitor++;
     req.session[id] = id;
@@ -211,7 +185,7 @@ app.get("/u/:id", (req, res) => {
 app.post("/urls/", (req, res) => {
   const id = generateRandomString(6);
   const { user_id } = req.session;
-  console.log(user_id);
+
   const { longURL } = req.body;
   const totalVisitor = 0;
   const uniqueVisitor = 0;
@@ -245,7 +219,6 @@ app.put("/urls/:id", (req, res) => {
 app.get("/login", (req, res) => {
   const { user_id } = req.session;
 
-  // if (!user_id) return res.redirect("/urls");
   const templateVars = {
     urls: urlDatabase,
     user: users[user_id],
@@ -268,7 +241,6 @@ app.post("/login", (req, res) => {
   if (!bcrypt.compareSync(password, user.password))
     return res.status(403).send("Invalid password and email");
 
-  // res.cookie("user_id", user.id);
   req.session.user_id = user.id;
   res.redirect("/urls");
 });
